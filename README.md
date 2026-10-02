@@ -1,100 +1,88 @@
-# Weather Alert Bot 🌦️📧
+# 🌦 Advanced Weather Alert Bot
 
-A simple Python bot that checks real-time weather using WeatherAPI and sends email alerts when the temperature is too high or too low.
+A feature-rich Python bot that monitors live weather & air quality for one or
+more cities and emails **beautifully formatted HTML alerts and daily briefings**
+via Gmail SMTP. Built on [WeatherAPI.com](https://www.weatherapi.com/).
 
-### Features
-- Fetches live weather data from WeatherAPI
-- Checks if temperature crosses thresholds (hot/cold)
-- Sends automated email alerts via Gmail SMTP
-- Configurable city and thresholds
-- Secure using environment variables
+## ✨ Features
 
-### Tech Stack
-- Python 3
-- WeatherAPI.com
-- `requests`, `python-dotenv`
-- Gmail SMTP
+- **Multi-city monitoring** — comma-separated list in `CITY`
+- **10+ smart alert rules**: heat / cold (incl. feels-like), rain, snow, high
+  wind, dangerous gusts, low visibility (fog/smog), very high UV, air-quality
+  (AQI + PM2.5), pressure extremes, and **official government weather alerts**
+- **Severity levels** — ℹ️ INFO / ⚠️ WARNING / 🚨 SEVERE with colour-coded emails
+- **Human advice** attached to every alert (what to do about it)
+- **Alert cooldown & dedup** — the same alert is not emailed twice within
+  `ALERT_COOLDOWN_HOURS` (state persisted in `alert_state.json`)
+- **Daily HTML briefing email** at a configurable hour (current conditions
+  table, multi-day forecast, active alerts, personalised tips)
+- **Rich console output** — watch the bot work without email
+- **Resilience** — retries with exponential backoff, rate-limit handling,
+  graceful Ctrl+C shutdown, rotating log files (`weather_bot.log`)
+- **Air-quality estimation** — computes US-EPA AQI from raw PM2.5 when your
+  API plan doesn't expose the index directly
 
-### Project Structure
+## 🚀 Quick start
+
+```bash
+pip install -r requirements.txt
+cp .env.example .env        # then fill in your secrets
+python main.py test-email   # verify SMTP works
+python main.py status       # console weather report (no email)
+python main.py check        # one-shot alert check
+python main.py run          # continuous monitor (every 30 min by default)
 ```
-weather-alert-bot/
-├── main.py         # Main logic - checks temp and triggers alert
-├── weather.py      # Fetches weather data from API
-├── notifier.py     # Sends email alert
-├── config.py       # Loads env variables
-├── requirements.txt
-├── .env.example    # Template for your secrets
-└── .gitignore
+
+## 💻 CLI
+
+| Command | Description |
+|---|---|
+| `python main.py run` | Continuous monitoring loop (default mode) |
+| `python main.py check` | One-shot alert check for all cities |
+| `python main.py status` | Console weather report, no emails |
+| `python main.py briefing` | Send today's full HTML briefing now |
+| `python main.py test-email` | Verify Gmail SMTP settings |
+| `python main.py search <name>` | Find valid location names |
+| `-v / --verbose` flag | Debug-level logging |
+
+## ⚙️ Configuration (`.env`)
+
+| Key | Default | Meaning |
+|---|---|---|
+| `API_KEY` | — | WeatherAPI.com key |
+| `SENDER_EMAIL` / `SENDER_PASSWORD` | — | Gmail + **app password** |
+| `RECEIVER_EMAIL` | — | Where alerts go |
+| `CITY` | `New Delhi, India` | Comma-separated monitored places |
+| `HOT_THRESHOLD` / `COLD_THRESHOLD` | 35 / 10 | °C alert thresholds |
+| `RAIN_CHANCE_THRESHOLD` / `SNOW_CHANCE_THRESHOLD` | 60 / 50 | % chance |
+| `WIND_THRESHOLD_KPH` / `GUST_THRESHOLD_KPH` | 40 / 60 | km/h |
+| `AQI_THRESHOLD` / `UV_THRESHOLD` / `VISIBILITY_THRESHOLD_KM` | 150 / 8 / 2 | |
+| `PRESSURE_LOW_MB` / `PRESSURE_HIGH_MB` | 990 / 1030 | |
+| `CHECK_INTERVAL_MINUTES` | 30 | polling frequency |
+| `FORECAST_DAYS` | 3 | 1–10 day outlook |
+| `ALERT_COOLDOWN_HOURS` | 6 | anti-spam per alert type |
+| `DAILY_BRIEFING_HOUR` | 7 | local hour for the briefing |
+| `SEND_ALERTS` | true | set false for dry runs |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USE_SSL` | gmail / 587 / false | override for other providers |
+
+## 📁 Project layout
+
+```
+main.py       # CLI + scheduler (run/check/status/briefing/test-email/search)
+config.py     # all settings, loaded from .env
+weather.py    # WeatherAPI client: current, forecast, alerts, AQI, search
+alerts.py     # rule engine: severities, advice, cooldown/dedup state
+notifier.py   # HTML email builder + Gmail SMTP sender + console rendering
 ```
 
-### Setup & Installation
+## 🔐 Gmail setup
 
-1. **Clone the repo**
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/weather-alert-bot.git
-   cd weather-alert-bot
-   ```
+Use a 16-character **App Password** (Google Account → Security → 2-Step
+Verification → App passwords), not your normal password. Never commit `.env`
+(it is gitignored).
 
-2. **Create virtual environment (optional but recommended)**
-   ```bash
-   python -m venv venv
-   venv\Scripts\activate  # Windows
-   # source venv/bin/activate # Mac/Linux
-   ```
+## ⚠️ Note on WeatherAPI plans
 
-3. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Configure Environment Variables**
-   Create a `.env` file in root (copy from `.env.example`):
-   ```
-   API_KEY=your_weatherapi_key
-   SENDER_EMAIL=your_email@gmail.com
-   SENDER_PASSWORD=your_gmail_app_password
-   RECEIVER_EMAIL=receiver_email@gmail.com
-   CITY=delhi
-   ```
-   - Get free API key from https://www.weatherapi.com/
-   - For Gmail: Use App Password, not regular password. Enable 2FA -> Generate App Password
-
-5. **Run the bot**
-   ```bash
-   python main.py
-   ```
-
-### How it Works
-1. `weather.py` calls WeatherAPI with city and API key
-2. Returns temp, humidity, condition
-3. `main.py` compares temp with HIGH/LOW thresholds
-4. If condition met, `notifier.py` sends email via SMTP
-
-### Future Improvements
-- [ ] Add cron job / GitHub Actions for daily automation
-- [ ] Add support for rain/thunderstorm alerts
-- [ ] Add Telegram/WhatsApp notifications
-- [ ] Dockerize the app
-
-### License
-MIT
-
----
-Built by Harshit Kandpal
-
-### 🤖 Automate with GitHub Actions
-
-This repo includes a workflow that runs daily at 8 AM IST.
-
-**Setup:**
-1. Go to your GitHub repo -> Settings -> Secrets and variables -> Actions
-2. Click New repository secret and add these 5 secrets:
-   - `API_KEY`
-   - `SENDER_EMAIL`
-   - `SENDER_PASSWORD`
-   - `RECEIVER_EMAIL`
-   - `CITY`
-
-3. Go to Actions tab -> Enable workflows -> Run workflow to test.
-
-No server needed!
+The free *explore* key does not include the `/airquality` endpoint; the bot
+automatically estimates AQI from the PM2.5 reading instead, so smog alerts
+still work.
