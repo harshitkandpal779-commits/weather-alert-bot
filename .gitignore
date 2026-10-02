@@ -1,1 +1,16 @@
-(empty)
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Python bytecode/cache
+__pycache__/
+*.pyc
+
+# Virtual environments
+venv/
+.venv/
+
+# Generated runtime files
+alert_state.json
+weather_bot.log
